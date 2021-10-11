@@ -1,0 +1,22 @@
+{
+	"minRPM":2000,
+	"maxRPM":11000,
+	"shiftRPM":10900,
+	"rpmStepSize":10,
+
+    "userDefinedTireDiameter":16.0,
+	"rimDiameter":0.0,
+	"tireWidth":0,
+	"tireAspectRatio":0,
+	
+	"finalDriveRatio":2.230,
+	"frontSprocketTeeth":12,
+	"rearSprocketTeeth":38,
+	
+	"gear1":2.420,
+	"gear2":1.730,
+	"gear3":1.310,
+	"gear4":1.050,
+	"gear5":0.840,
+	"gear6":0.000,
+}
