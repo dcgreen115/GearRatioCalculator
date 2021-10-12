@@ -178,9 +178,17 @@ public class Calculator {
         updateTireDiameter();
     }
     
+    public double getUserDefinedTireDiameter() {
+        return userDefinedTireDiameter;
+    }
+    
     public void setRimDiameter(double rimDiameter) {
         this.rimDiameter = rimDiameter;
         updateTireDiameter();
+    }
+    
+    public double getRimDiameter() {
+        return rimDiameter;
     }
     
     public void setTireWidth(long tireWidth) {
@@ -188,9 +196,17 @@ public class Calculator {
         updateTireDiameter();
     }
     
+    public long getTireWidth() {
+        return tireWidth;
+    }
+    
     public void setTireAspectRatio(long tireAspectRatio) {
         this.tireAspectRatio = tireAspectRatio;
         updateTireDiameter();
+    }
+    
+    public long getTireAspectRatio() {
+        return tireAspectRatio;
     }
     
     public double getFinalDriveRatio() {

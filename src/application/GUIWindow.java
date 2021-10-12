@@ -38,6 +38,7 @@ public class GUIWindow {
     private Stage stage = null;
     private BorderPane border;
     private GridPane leftGrid;
+    ScatterChart<Number,Number> speedChart;
     
     private Button loadDefaultsButton;
     private Button loadConfigButton;
@@ -98,7 +99,7 @@ public class GUIWindow {
             //Bounds chartBounds = speedChart.getBoundsInParent();
             
             Scene scene  = new Scene(border,1200,750);
-            scene.getStylesheets().add(getClass().getResource("application.css").toExternalForm());
+            //scene.getStylesheets().add(getClass().getResource("application.css").toExternalForm());
             primaryStage.setScene(scene);
             primaryStage.sizeToScene();
             primaryStage.show();
@@ -117,23 +118,16 @@ public class GUIWindow {
         speedXAxis.setLabel("Ground Speed (mph)");
         speedYAxis.setLabel("Engine RPM");
         
-        ScatterChart<Number,Number> speedChart = new ScatterChart<Number,Number>(speedXAxis,speedYAxis);
+        speedChart = new ScatterChart<Number,Number>(speedXAxis,speedYAxis);
         speedChart.setTitle("Engine RPM vs. Ground Speed Per Gear");
         
         
         //Get data for the possible speeds in each gear and add those points to the scatter plot
         for (int gear = 0; gear < calc.getNumGears(); gear++) {
-//            for (long rpm = 0; rpm <= calc.getParser().getMaxRPM() - calc.getParser().getMinRPM(); rpm += calc.getParser().getRPMStepSize()) {
-//                rpmVsSpeedPerGear.getData().add(new XYChart.Data<Number, Number>(
-//                    calc.getSpeedsPerGear()[gear][(int) (rpm / calc.getParser().getRPMStepSize())], 
-//                    rpm + calc.getParser().getMinRPM()));
-//            }
             
             long graphStartRPM;
             switch (gear) {
-                
-                
-                case 0:
+                case 0: //First Gear
                     System.out.println(gear);
                     Series<Number, Number> firstGear = new XYChart.Series<Number, Number>();
                     for (long rpm = 0; rpm <= calc.getMaxRPM() - calc.getMinRPM(); rpm += calc.getRPMStepSize()) {
@@ -147,7 +141,7 @@ public class GUIWindow {
                     speedChart.getData().add(firstGear);
                     break;
                     
-                case 1:
+                case 1: //Second Gear
                     System.out.println(gear);
                     Series<Number, Number> secondGear = new XYChart.Series<Number, Number>();
                     
@@ -167,7 +161,7 @@ public class GUIWindow {
                     speedChart.getData().add(secondGear);
                     break;
                     
-                case 2:
+                case 2: //Third Gear
                     System.out.println(gear);
                     Series<Number, Number> thirdGear = new XYChart.Series<Number, Number>();
                     
@@ -187,7 +181,7 @@ public class GUIWindow {
                     speedChart.getData().add(thirdGear);
                     break;
                     
-                case 3:
+                case 3: //Fourth Gear
                     System.out.println(gear);
                     Series<Number, Number> fourthGear = new XYChart.Series<Number, Number>();
                     
@@ -207,7 +201,7 @@ public class GUIWindow {
                     speedChart.getData().add(fourthGear);
                     break;
                     
-                case 4:
+                case 4: //Fifth Gear
                     System.out.println(gear);
                     Series<Number, Number> fifthGear = new XYChart.Series<Number, Number>();
                     
@@ -227,7 +221,7 @@ public class GUIWindow {
                     speedChart.getData().add(fifthGear);
                     break;
                     
-                case 5:
+                case 5: //Sixth Gear
                     System.out.println(gear);
                     Series<Number, Number> sixthGear = new XYChart.Series<Number, Number>();
                     
@@ -496,7 +490,6 @@ public class GUIWindow {
         updateGraphButton.setOnAction(new EventHandler<ActionEvent>() {
             @Override
             public void handle(ActionEvent e) {
-                resetTextColor();
                 if (getEnteredValues()) {
                     updateGraph();
                 }
@@ -518,11 +511,18 @@ public class GUIWindow {
                 border.setCenter(addSpeedGraph());
             }
         });
+        saveConfigButton.setOnAction(new EventHandler<ActionEvent>() {
+            @Override
+            public void handle(ActionEvent e) {
+                saveConfig();
+            }
+        });
     }
     
     public void updateGraph() {
         if (speedGraphIsShown) {
             calc.calculateSpeedsPerGear();
+            
             border.setCenter(addSpeedGraph());
         }
         else { //Torque graph is shown
@@ -544,6 +544,7 @@ public class GUIWindow {
     
     private void loadConfig() {
         FileChooser fileChooser = new FileChooser();
+        fileChooser.setTitle("Load Config");
         File file = fileChooser.showOpenDialog(stage);
         if (file != null) {
             Parser parser = new Parser(file.getAbsolutePath());
@@ -572,9 +573,54 @@ public class GUIWindow {
         } 
     }
     
+    private void saveConfig() {
+        //Check if the text fields have valid input, and continue if they do
+        //Otherwise the user must correct the input values
+        if (!getEnteredValues()) {
+            return;
+        }
+        
+        FileChooser fileChooser = new FileChooser();
+        fileChooser.setTitle("Save Config");
+        fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("JSON", "*.json"));
+        File file = fileChooser.showSaveDialog(stage);
+        if (file != null && getEnteredValues()) {
+            try {
+                FileWriter writer = new FileWriter(file);
+                StringBuilder string = new StringBuilder();
+                string.append("{\n");
+                string.append("    \"maxRPM\":" + calc.getMaxRPM() + ",\n");
+                string.append("    \"minRPM\":" + calc.getMinRPM() + ",\n");
+                string.append("    \"shiftRPM\":" + calc.getShiftRPM() + ",\n");
+                string.append("    \"rpmStepSize\":" + calc.getRPMStepSize() + ",\n\n");
+                string.append("    \"userDefinedTireDiameter\":" + calc.getTireDiameter() + ",\n");
+                string.append("    \"rimDiameter\":" + calc.getRimDiameter() + ",\n");
+                string.append("    \"tireWidth\":" + calc.getTireWidth() + ",\n");
+                string.append("    \"tireAspectRatio\":" + calc.getTireAspectRatio() + ",\n\n");
+                string.append("    \"finalDriveRatio\":" + calc.getFinalDriveRatio() + ",\n");
+                string.append("    \"frontSprocketTeeth\":" + calc.getFrontSprocketTeeth() + ",\n");
+                string.append("    \"rearSprocketTeeth\":" + calc.getRearSprocketTeeth() + ",\n\n");
+                string.append("    \"gear1\":" + calc.getGearRatios()[0] + ",\n");
+                string.append("    \"gear2\":" + calc.getGearRatios()[1] + ",\n");
+                string.append("    \"gear3\":" + calc.getGearRatios()[2] + ",\n");
+                string.append("    \"gear4\":" + calc.getGearRatios()[3] + ",\n");
+                string.append("    \"gear5\":" + calc.getGearRatios()[4] + ",\n");
+                string.append("    \"gear6\":" + calc.getGearRatios()[5] + "\n");
+                string.append("}");
+                writer.write(string.toString());
+                writer.flush();
+                writer.close();
+            }
+            catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+    
     private boolean getEnteredValues() {
         boolean errorsPresent = false;
         boolean userDefinedTireDiameterIsSet = false;
+        resetTextColor();
         
         //Update Maximum RPM
         if (maximumRPMField.getText().length() != 0) {
@@ -702,5 +748,7 @@ public class GUIWindow {
         }
         return !errorsPresent;
     }
+    
+    
     
 }

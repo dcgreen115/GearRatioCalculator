@@ -34,8 +34,9 @@ public class Parser {
         JSONObject json = null;
         
         try {
-            json = (JSONObject) new JSONParser().parse(
-                new FileReader(filename));
+            FileReader reader = new FileReader(filename);
+            json = (JSONObject) new JSONParser().parse(reader);
+            reader.close();
         }
         catch (IOException e) {
             System.err.println(
