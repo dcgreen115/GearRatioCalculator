@@ -28,7 +28,9 @@ public class Calculator {
     private double[][] speedsPerGear;
     private double[][] torquePerGear;
     
-    
+    public Calculator() {
+        
+    }
     
     public Calculator(Parser parser) {
         readParsedData(parser);
@@ -59,21 +61,6 @@ public class Calculator {
     }
     
     public void calculateSpeedsPerGear() {
-        System.out.println("NG " + numGears);
-        System.out.println("Max " + maxRPM);
-        System.out.println("Min " + minRPM);
-        System.out.println("Step " + rpmStepSize);
-        System.out.println("FD " + finalDriveRatio);
-        System.out.println("Rollout " + tireRollout);
-        System.out.println("SG " + sprocketGearRatio);
-        System.out.println("G1 " + gearRatios[0]);
-        System.out.println("G2 " + gearRatios[1]);
-        System.out.println("G3 " + gearRatios[2]);
-        System.out.println("G4 " + gearRatios[3]);
-        System.out.println("G5 " + gearRatios[4]);
-        System.out.println("TD " + tireDiameter);
-        System.out.println("FS " + frontSprocketTeeth);
-        System.out.println("RS " + rearSprocketTeeth);
         speedsPerGear = new double[numGears][(int) ((maxRPM - minRPM) / rpmStepSize) + 1];
         for (int gear = 0; gear < numGears; gear++) {
             for (long rpm = 0; rpm <= maxRPM - minRPM; rpm += rpmStepSize) {

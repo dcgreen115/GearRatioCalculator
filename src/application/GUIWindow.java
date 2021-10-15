@@ -3,8 +3,11 @@ package application;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.text.DecimalFormat;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.geometry.Insets;
@@ -14,6 +17,7 @@ import javafx.scene.chart.ScatterChart;
 import javafx.scene.chart.XYChart;
 import javafx.scene.chart.XYChart.Series;
 import javafx.scene.control.Button;
+import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.Separator;
 import javafx.scene.control.TextField;
@@ -34,10 +38,13 @@ import javafx.stage.Stage;
 public class GUIWindow {
     
     private Calculator calc;
+    private TopSpeedSolver tsCalc;
     
     private Stage stage = null;
     private BorderPane border;
     private GridPane leftGrid;
+    //private BorderPane graphArea;
+    //private GridPane rightGrid;
     ScatterChart<Number,Number> speedChart;
     
     private Button loadDefaultsButton;
@@ -45,6 +52,8 @@ public class GUIWindow {
     private Button saveConfigButton;
     private Button updateGraphButton;
     private ToggleButton showFullGraphButton;
+    private Button calculateButton;
+    private Button transferValuesButton;
     
     private Label maximumRPMLabel;
     private Label minimumRPMLabel;
@@ -56,7 +65,12 @@ public class GUIWindow {
     private Label finalDriveRatioLabel;
     private Label frontSprocketTeethLabel;
     private Label rearSprocketTeethLabel;
-    //Label updateGraphErrorLabel;
+    private Label topSpeedLabel;
+    private Label calcFinalDriveRatioLabel;
+    private Label calcFrontSprocketTeethLabel;
+    private Label calcRearSprocketTeethLabel;
+    private Label resultLabel;
+    private Label variableLabel;
     
     private TextField maximumRPMField;
     private TextField minimumRPMField;
@@ -74,6 +88,15 @@ public class GUIWindow {
     private TextField fourthGearRatioField;
     private TextField fifthGearRatioField;
     private TextField sixthGearRatioField;
+    private TextField topSpeedField;
+    private TextField calcFinalDriveRatioField;
+    private TextField calcFrontSprocketTeethField;
+    private TextField calcRearSprocketTeethField;
+    private TextField calcOutputField;
+    
+    private DecimalFormat decimalFormat;
+    
+    private ComboBox<String> calcModeBox;
     
     private boolean showFullGraph = false;
     private boolean speedGraphIsShown = true;
@@ -81,6 +104,8 @@ public class GUIWindow {
     
     public GUIWindow(Stage primaryStage) {
         calc = new Calculator(new Parser("configs/defaults.json"));
+        tsCalc = new TopSpeedSolver(calc);
+        decimalFormat = new DecimalFormat("##0.##");
         
         
         try {
@@ -92,13 +117,14 @@ public class GUIWindow {
             border.setLeft(addLeftInputBoxes());
             border.setCenter(addSpeedGraph());
             border.setBottom(addBottomButtons());
+            border.setRight(addRightCalculator());
             
             //Point p = MouseInfo.getPointerInfo().getLocation();
             //int mouseXPos = p.x;
             //int mouseYPos = p.y;
             //Bounds chartBounds = speedChart.getBoundsInParent();
             
-            Scene scene  = new Scene(border,1200,750);
+            Scene scene  = new Scene(border,1400,750);
             //scene.getStylesheets().add(getClass().getResource("application.css").toExternalForm());
             primaryStage.setScene(scene);
             primaryStage.sizeToScene();
@@ -128,7 +154,6 @@ public class GUIWindow {
             long graphStartRPM;
             switch (gear) {
                 case 0: //First Gear
-                    System.out.println(gear);
                     Series<Number, Number> firstGear = new XYChart.Series<Number, Number>();
                     for (long rpm = 0; rpm <= calc.getMaxRPM() - calc.getMinRPM(); rpm += calc.getRPMStepSize()) {
                         firstGear.getData().add(new XYChart.Data<Number, Number>(
@@ -142,7 +167,6 @@ public class GUIWindow {
                     break;
                     
                 case 1: //Second Gear
-                    System.out.println(gear);
                     Series<Number, Number> secondGear = new XYChart.Series<Number, Number>();
                     
                     graphStartRPM = 0;
@@ -162,7 +186,6 @@ public class GUIWindow {
                     break;
                     
                 case 2: //Third Gear
-                    System.out.println(gear);
                     Series<Number, Number> thirdGear = new XYChart.Series<Number, Number>();
                     
                     graphStartRPM = 0;
@@ -182,7 +205,6 @@ public class GUIWindow {
                     break;
                     
                 case 3: //Fourth Gear
-                    System.out.println(gear);
                     Series<Number, Number> fourthGear = new XYChart.Series<Number, Number>();
                     
                     graphStartRPM = 0;
@@ -202,7 +224,6 @@ public class GUIWindow {
                     break;
                     
                 case 4: //Fifth Gear
-                    System.out.println(gear);
                     Series<Number, Number> fifthGear = new XYChart.Series<Number, Number>();
                     
                     graphStartRPM = 0;
@@ -222,7 +243,6 @@ public class GUIWindow {
                     break;
                     
                 case 5: //Sixth Gear
-                    System.out.println(gear);
                     Series<Number, Number> sixthGear = new XYChart.Series<Number, Number>();
                     
                     graphStartRPM = 0;
@@ -419,6 +439,8 @@ public class GUIWindow {
         rowsUsed++;
         
         leftGrid.add(updateGraphButton, 0, rowsUsed + 1);
+        updateGraphButton.setPrefSize(100,  20);
+        //updateGraphButton.setPadding(new Insets(15, 12, 15, 12));
         
         
         
@@ -432,10 +454,92 @@ public class GUIWindow {
         bottomButtons.setSpacing(10);
         
         showFullGraphButton = new ToggleButton("Show Full Graph");
+        //showFullGraphButton.setPrefSize(100, 20);
         
         bottomButtons.getChildren().add(showFullGraphButton);
         
         return bottomButtons;
+    }
+    
+    private AnchorPane addRightCalculator() {
+        AnchorPane rightCalculator = new AnchorPane();
+        rightCalculator.setPadding(new Insets(0, 10, 0, 10));
+        
+        Label calculatorLabel = new Label("               Top Speed Gearing Calculator");
+        calculatorLabel.setFont(Font.font("Calibri", FontWeight.BOLD, 17));
+        rightCalculator.getChildren().add(calculatorLabel);
+        
+        GridPane rightGrid = new GridPane();
+        rightGrid.setHgap(10);
+        rightGrid.setVgap(10);
+        rightGrid.setPadding(new Insets(40, 10, 20, 10));
+        
+        topSpeedLabel = new Label("Top Speed:");
+        topSpeedLabel.setFont(Font.font("Calibri", FontWeight.BOLD, 15));
+        topSpeedField = new TextField();
+        topSpeedField.setPromptText("Enter value in mph");
+        rightGrid.add(topSpeedLabel, 0, 0);
+        rightGrid.add(topSpeedField, 1, 0);
+        
+        Separator separator1 = new Separator();
+        rightGrid.add(separator1, 0, 1);
+        
+        calcFinalDriveRatioLabel = new Label("Final Drive Ratio:");
+        calcFinalDriveRatioLabel.setFont(Font.font("Calibri", FontWeight.BOLD, 15));
+        calcFinalDriveRatioField = new TextField();
+        calcFinalDriveRatioField.setPromptText("Enter a decimal number");
+        rightGrid.add(calcFinalDriveRatioLabel, 0, 2);
+        rightGrid.add(calcFinalDriveRatioField, 1, 2);
+        
+        calcFrontSprocketTeethLabel = new Label("Front Sprocket Teeth:");
+        calcFrontSprocketTeethLabel.setFont(Font.font("Calibri", FontWeight.BOLD, 15));
+        calcFrontSprocketTeethField = new TextField();
+        calcFrontSprocketTeethField.setPromptText("Enter a whole number");
+        rightGrid.add(calcFrontSprocketTeethLabel, 0, 3);
+        rightGrid.add(calcFrontSprocketTeethField, 1, 3);
+        
+        calcRearSprocketTeethLabel = new Label("Rear Sprocket Teeth:");
+        calcRearSprocketTeethLabel.setFont(Font.font("Calibri", FontWeight.BOLD, 15));
+        calcRearSprocketTeethField = new TextField();
+        calcRearSprocketTeethField.setPromptText("Enter a whole number");
+        rightGrid.add(calcRearSprocketTeethLabel, 0, 4);
+        rightGrid.add(calcRearSprocketTeethField, 1, 4);
+        
+        Separator separator2 = new Separator();
+        rightGrid.add(separator2, 0, 5);
+        
+        resultLabel = new Label("Result:");
+        resultLabel.setFont(Font.font("Calibri", FontWeight.BOLD, 15));
+        rightGrid.add(resultLabel, 0, 6);
+        
+        variableLabel = new Label("Variable Name");
+        variableLabel.setFont(Font.font("Calibri", FontWeight.BOLD, 15));
+        calcOutputField = new TextField();
+        calcOutputField.setPromptText("Result is printed here");
+        rightGrid.add(variableLabel, 0, 7);
+        rightGrid.add(calcOutputField, 1, 7);
+        
+        Separator separator3 = new Separator();
+        rightGrid.add(separator3, 0, 8);
+        
+        Label calcModeLabel = new Label("Calculation Mode:");
+        calcModeLabel.setFont(Font.font("Calibri", FontWeight.BOLD, 15));
+        ObservableList<String> options = FXCollections.observableArrayList("Overshoot", "Undershoot");
+        calcModeBox = new ComboBox<String>(options);
+        calcModeBox.setValue("Overshoot");
+        rightGrid.add(calcModeLabel, 0, 9);
+        rightGrid.add(calcModeBox, 1, 9);
+        
+        calculateButton = new Button("Calculate");
+        calculateButton.setPrefSize(100, 20);
+        rightGrid.add(calculateButton, 0, 10);
+        
+        transferValuesButton = new Button ("Transfer Values");
+        transferValuesButton.setPrefSize(100, 20);
+        rightGrid.add(transferValuesButton, 1, 10);
+        
+        rightCalculator.getChildren().add(rightGrid);
+        return rightCalculator;
     }
     
     public void loadDefaultConfig() {
@@ -455,6 +559,10 @@ public class GUIWindow {
         fourthGearRatioField.setText(String.valueOf(defaults.getGearRatios()[3]));
         fifthGearRatioField.setText(String.valueOf(defaults.getGearRatios()[4]));
         
+        calcFinalDriveRatioField.setText(finalDriveRatioField.getText());
+        calcFrontSprocketTeethField.setText(frontSprocketTeethField.getText());
+        calcRearSprocketTeethField.setText(rearSprocketTeethField.getText());
+        
         calc.setMaxRPM(11000);
         calc.setMinRPM(2000);
         calc.setShiftRPM(10900);
@@ -471,6 +579,10 @@ public class GUIWindow {
         calc.setGearRatio(3,  1.05);
         calc.setGearRatio(4,  0.84);
         calc.setGearRatio(5,  0.00);
+        
+        tsCalc.setFinalDriveRatio(2.23);
+        tsCalc.setFrontSprocketTeeth(12);
+        tsCalc.setRearSprocketTeeth(38);
         updateGraph();
     }
     
@@ -517,6 +629,18 @@ public class GUIWindow {
                 saveConfig();
             }
         });
+        calculateButton.setOnAction(new EventHandler<ActionEvent>() {
+            @Override
+            public void handle(ActionEvent e) {
+                handleTopSpeedCalculations();
+            }
+        });
+        transferValuesButton.setOnAction(new EventHandler<ActionEvent> () {
+            @Override
+            public void handle(ActionEvent e) {
+                transferCalcValues();
+            }
+        });
     }
     
     public void updateGraph() {
@@ -540,6 +664,13 @@ public class GUIWindow {
         finalDriveRatioLabel.setTextFill(Color.BLACK);
         frontSprocketTeethLabel.setTextFill(Color.BLACK);
         rearSprocketTeethLabel.setTextFill(Color.BLACK);
+    }
+    
+    private void resetCalcTextColors() {
+        topSpeedLabel.setTextFill(Color.BLACK);
+        calcFinalDriveRatioLabel.setTextFill(Color.BLACK);
+        calcFrontSprocketTeethLabel.setTextFill(Color.BLACK);
+        calcRearSprocketTeethLabel.setTextFill(Color.BLACK);
     }
     
     private void loadConfig() {
@@ -749,6 +880,103 @@ public class GUIWindow {
         return !errorsPresent;
     }
     
+    private boolean getEnteredCalcValues() {
+        resetCalcTextColors();
+        int numUnfilledFields = 0;
+        
+        //Top Speed
+        if (topSpeedField.getText().length() != 0) {
+            tsCalc.setDesiredTopSpeed(Double.parseDouble(topSpeedField.getText()));
+        }
+        else {
+            numUnfilledFields++;
+        }
+        
+        //Final Drive Ratio
+        if (calcFinalDriveRatioField.getText().length() != 0) {
+            tsCalc.setFinalDriveRatio(Double.parseDouble(calcFinalDriveRatioField.getText()));
+        }
+        else if (numUnfilledFields > 0) {
+            calcFinalDriveRatioLabel.setTextFill(Color.RED);
+            numUnfilledFields++;
+        }
+        else {
+            numUnfilledFields++;
+        }
+        
+        //Front Sprocket Teeth
+        if (calcFrontSprocketTeethField.getText().length() != 0) {
+            tsCalc.setFrontSprocketTeeth(Integer.parseInt(calcFrontSprocketTeethField.getText()));
+        }
+        else if (numUnfilledFields > 0) {
+            calcFrontSprocketTeethLabel.setTextFill(Color.RED);
+            numUnfilledFields++;
+        }
+        else {
+            numUnfilledFields++;
+        }
+        
+        //Rear Sprocket Teeth
+        if (calcRearSprocketTeethField.getText().length() != 0) {
+            tsCalc.setRearSprocketTeeth(Integer.parseInt(calcRearSprocketTeethField.getText()));
+        }
+        else if (numUnfilledFields > 0) {
+            calcRearSprocketTeethLabel.setTextFill(Color.RED);
+            numUnfilledFields++;
+        }
+        else {
+            numUnfilledFields++;
+        }
+        
+        return numUnfilledFields == 1;
+    }
     
+    private void handleTopSpeedCalculations() {
+        if (!getEnteredCalcValues()) {
+            return;
+        }
+        
+        if (calcModeBox.getValue().equals("Overshoot")) {
+            tsCalc.setCalculationMode(true);
+        }
+        else {
+            tsCalc.setCalculationMode(false);
+        }
+        
+        if (topSpeedField.getText().length() == 0) {
+            //TS Calculation
+            tsCalc.calculateTopSpeed();
+            variableLabel.setText("Top Speed:");
+            calcOutputField.setText(Double.toString(Double.parseDouble(decimalFormat.format(tsCalc.getDesiredTopSpeed()))));
+        }
+        else if (calcFinalDriveRatioField.getText().length() == 0) {
+            //FD Calculation
+            tsCalc.calculateFinalDriveRatio();
+            variableLabel.setText("Final Drive Ratio:");
+            calcOutputField.setText(Double.toString(Double.parseDouble(decimalFormat.format(tsCalc.getFinalDriveRatio()))));
+        }
+        else if (calcFrontSprocketTeethField.getText().length() == 0) {
+            //FST Calculation
+            tsCalc.calculateFrontSprocketTeeth();
+            variableLabel.setText("Front Sprocket Teeth:");
+            calcOutputField.setText(Integer.toString(tsCalc.getFrontSprocketTeeth()));
+        }
+        else {
+            //RST Calculation
+            tsCalc.calculateRearSprocketTeeth();
+            variableLabel.setText("Rear Sprocket Teeth:");
+            calcOutputField.setText(Integer.toString(tsCalc.getRearSprocketTeeth()));
+        }
+    }
+    
+    private void transferCalcValues() {
+        if (calcOutputField.getText().length() == 0) {
+            return; //If nothing has been calculated, do nothing
+        }
+        
+        finalDriveRatioField.setText(String.valueOf(decimalFormat.format(tsCalc.getFinalDriveRatio())));
+        frontSprocketTeethField.setText(String.valueOf(tsCalc.getFrontSprocketTeeth()));
+        rearSprocketTeethField.setText(String.valueOf(tsCalc.getRearSprocketTeeth()));
+    }
     
 }
